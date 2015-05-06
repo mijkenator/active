@@ -41,7 +41,7 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info({_Pid, {erlfsmon,file_event}, {Path, Flags}}, #state{root=Root} = State) ->
-    error_logger:warning_msg("HI EFE ~p ~p ~p", [Root, Path, Flags]),
+    error_logger:info_msg("HI EFE ~p ~p ~p", [Root, Path, Flags]),
     Cur = path_shorten(filename:split(Root)),
     P = filename:split(Path),
 
@@ -97,6 +97,14 @@ path_modified_event([File]) ->
         _ -> dont_care
     end;
 
+path_modified_event(["lib", _, "ebin", File] = _Path) ->
+    error_logger:info_msg("pme: release beam: ~p", [_Path]),
+    Tokens = string:tokens(File, "."),
+    case Tokens of
+        [Name, "beam"] -> do_load_ebin(list_to_atom(Name));
+        _ -> dont_care
+    end;
+
 path_modified_event(_P) ->
     error_logger:warning_msg("active: unhandled path: ~p", [_P]),
     dont_care.
@@ -131,8 +139,8 @@ load_ebin(EName) ->
 
 do_load_ebin(Module) ->
     {Module, Binary, Filename} = code:get_object_code(Module),
-    code:load_binary(Module, Filename, Binary),
-    error_logger:info_msg("active: module loaded: ~p~n", [Module]),
+    Ret = code:load_binary(Module, Filename, Binary),
+    error_logger:info_msg("active: module loaded: ~p -> ~p ~n", [Ret, Module]),
     reloaded.
 
 monitor_handles_renames([renamed|_]) -> true;
