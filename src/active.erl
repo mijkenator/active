@@ -41,13 +41,14 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info({_Pid, {erlfsmon,file_event}, {Path, Flags}}, #state{root=Root} = State) ->
+    error_logger:warning_msg("HI EFE ~p ~p ~p", [Root, Path, Flags]),
     Cur = path_shorten(filename:split(Root)),
     P = filename:split(Path),
 
     Result = case lists:prefix(Cur, P) of
         true ->
             Components = P -- Cur,
-            %error_logger:info_msg("event: ~p ~p", [Components, Flags]),
+            error_logger:info_msg("event: ~p ~p", [Components, Flags]),
             path_event(Components, Flags);
         false ->
             ok
@@ -96,13 +97,14 @@ path_modified_event([File]) ->
         _ -> dont_care
     end;
 
-path_modified_event(_) ->
-    %error_logger:warning_msg("active: unhandled path: ~p", [P]),
+path_modified_event(_P) ->
+    error_logger:warning_msg("active: unhandled path: ~p", [_P]),
     dont_care.
 
 app_modified_event(_App, ["ebin", EName|_] = _Path) ->
     load_ebin(EName);
 app_modified_event(_App, _P) ->
+    error_logger:warning_msg("active: app ~p; unhandled path: ~p", [_App, _P]),
     dont_care.
     %error_logger:warning_msg("active: app ~p; unhandled path: ~p", [App, P]).
 
